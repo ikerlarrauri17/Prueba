@@ -1,0 +1,303 @@
+from pyalgotrade import strategy
+from pyalgotrade.barfeed import yahoofeed
+from pyalgotrade.barfeed import quandlfeed
+import matplotlib.pyplot as plt
+import yfinance as yf
+import pandas as pd
+import csv
+from pyalgotrade.technical import ma
+from pyalgotrade.technical import rsi
+import numpy as np
+#py -c "import yfinance; yfinance.download('AAPL','2016-01-01','2019-08-01')"
+# class MyStrategy(strategy.BacktestingStrategy):
+#     def __init__(self, feed, instrument):
+#         super(MyStrategy, self).__init__(feed)
+#         self.__instrument = instrument
+#
+#     def onBars(self, bars):
+#         bar = bars[self.__instrument]
+#         self.info(bar.getClose())
+#
+# # Load the yahoo feed from the CSV file
+# feed = quandlfeed.Feed()
+# feed.addBarsFromCSV("ibm", "orcl-2000.csv")
+#
+# # Evaluate the strategy with the feed's bars.
+# myStrategy = MyStrategy(feed, "orcl")
+# myStrategy.run()
+
+def get_datos_historicos(nombre_compañia):
+    # Get the data of the stock AAPL
+    datas = yf.download(nombre_compañia, '2016-01-01', '2019-08-01')
+    # return datas
+    # Import the plotting library
+    csvstring = datas.to_csv()
+    # print (csvstring)
+    returnvalue = datas.to_csv(nombre_compañia)
+    # Plot the close price of the AAPL
+    # datas['Adj Close'].plot()
+    # plt.show()
+    # lee los archivos csv y le da el nombre inicial a cada valor
+    with open(nombre_compañia) as csvfile:
+        reader = csv.DictReader(csvfile)
+        vector_datos = []
+        # para añadir cada fila del documento a un vector y trabajar con el
+        for row in reader:
+            vector_datos.append(row)
+            # print (row)
+            # print(row['Open'])
+        return (datas, vector_datos)
+        # return (vector_datos[1].__getitem__('Open'))
+    # datas1 = yf.download('AMZN','2016-01-01','2019-08-01')
+    # csvstring=datas1.to_csv()
+    # returnvalue1=datas1.to_csv('AMZN1619.csv')
+
+class MyStrategy(strategy.BacktestingStrategy):
+    def __init__(self, feed, instrument):
+        self.vectorrsi = []
+        self.vectorsma = []
+        self.numero_onbars=0
+        super(MyStrategy, self).__init__(feed)
+        self.__rsi = rsi.RSI(feed[instrument].getCloseDataSeries(), 14)
+        self.__sma = ma.SMA(self.__rsi, 15)
+        self.__instrument = instrument
+
+    def get__vecor_rsi(self):
+        return (self.vectorrsi)
+
+    def get_vector_sma(self):
+        return (self.vectorsma)
+
+    def onBars(self, bars):
+        bar = bars[self.__instrument]
+        self.info("%s %s %s %s %s" % (bar.getOpen(), bar.getClose(), self.__rsi[-1], self.__sma[-1], self.numero_onbars))
+
+        self.vectorrsi.append(self.__rsi[-1]) #para añadir al vector rsi
+        self.vectorsma.append(self.__sma[-1])
+        #return (self.a)
+        self.numero_onbars += 1
+
+    def getRSI14(self, n):  #te da el valor de rsi que deseas poniendo el numero
+        a=[]
+        a.append(self.__rsi[n])
+        return a
+    def getSMA(self,n):
+        vectorsma=[]
+        vectorsma.append(self.__sma[n])
+        return vectorsma
+# Load the yahoo feed from the CSV file
+feed = yahoofeed.Feed()
+feed.addBarsFromCSV("aapl1619", "aapl1619.csv")
+
+# Evaluate the strategy with the feed's bars.
+myStrategy = MyStrategy(feed, "aapl1619")
+myStrategy.run()
+a = 'AAPL'
+b, vector_datos = get_datos_historicos(a)
+print (vector_datos)
+#print (b)
+#a= myStrategy.onBars()
+#print (a)
+d= myStrategy.getRSI14(-15) #imprime el rsi y sma que le digamos
+print (d)
+e=myStrategy.getSMA(-1)
+print (e)
+vector_RSI=myStrategy.get__vecor_rsi()   #con esto te imprime el vector del rsi
+print (vector_RSI)
+vector_SMA=myStrategy.get_vector_sma()
+print (vector_SMA)
+#print (vector_datos[0])
+#print (vector_datos[0].__getitem__('Open'))
+
+
+def detectar_tendencia(vector_datos):   #hacerlo con numpy polyfit???????????? sklearn?????????'
+    tendencia_alza=False
+    tendencia_baja=False
+    n=0
+    open=[]           #vectores con todos los opens y closes
+    close=[]
+    while n<len(vector_datos):
+        abre=(vector_datos[n].__getitem__('Open'))
+        open.append(abre)
+        cierra=(vector_datos[n].__getitem__('Close'))
+        close.append(cierra)
+        n +=1
+    n=0
+    #numeros de posicion de open o close donde se detectan tendencias
+    posicion_tendencia_alza=[]
+    posicion_tendencia_baja=[]
+    while n<len(open) and n<len(close):      #para detectar maximos y minimos decrecientes o crecientes
+        if open[n-2]<open[n-1] and open[n-1]<open[n] and close[n-2]<close[n-1] and close[n-1]<close[n]:
+            tendencia_alza=True
+            posicion_tendencia_alza.append(n-2)
+            n+=1
+        elif open[n-2]>open[n-1] and open[n-1]>open[n] and close[n-2]>close[n-1] and close[n-1]>close[n]:
+            tendencia_baja=True
+            posicion_tendencia_baja.append(n-2)
+            n+=1
+
+        else:
+            n+=1
+    return posicion_tendencia_alza, posicion_tendencia_baja
+
+
+tendencia_alza, tendencia_baja =detectar_tendencia(vector_datos)
+print ('Posicion tendencias alza:', tendencia_alza)
+print ('Posicion tendencias baja:', tendencia_baja)
+
+
+
+
+class operaciones:
+
+    def __init__(self, vector_datos, tendencia_alza, tendencia_baja):
+        self.vector_datos= vector_datos
+        self.tendencia_alza = tendencia_alza
+        self.tendencia_baja  = tendencia_baja
+        self.suma_total=0,0
+        self.cuando_compra=[]
+        self.cuando_vende=[]
+        self.cuanto_gana=0,0
+        self.cuanto_pierde=0,0
+        self.posible_compra_alza=[]
+        self.posible_venta_alza=[]
+        self.posible_suma_alza=0,0
+        self.posible_compra_baja = []
+        self.posible_venta_baja = []
+        self.posible_suma_baja=0,0
+        self.posible_suma_total=0,0
+        self.contador=0
+        self.prueba= 0
+        self.funciona=False
+    def prueba_DE_clase(self):
+        self.prueba=3435
+
+    def get_funiona(self):
+        return self.funciona
+    def get_prueba(self):
+        return (self.prueba)
+    def get_contador(self):
+        return (self.contador)
+    def get_posible_compra_alza(self):
+        return (self.posible_compra_alza)
+
+    def get_posible_venta_alza(self):
+        return (self.posible_venta_alza)
+
+    def get_posible_compra_baja(self):
+        return (self.posible_compra_baja)
+
+    def get_posible_venta_baja(self):
+        return (self.posible_venta_baja)
+
+    def get_posible_suma_alza(self):
+        total=0,0
+        n=0
+        while n < len(self.posible_compra_alza) or n < len(self.posible_venta_alza):
+            total = total + (self.posible_compra_alza[n].__getitem('Open')) - (self.posible_venta_alza[n].__getitem('Open'))
+            n+=1
+
+        return total
+
+    def aplicar_fibonacci(self):
+        a=0,382
+        b=0,50
+        c=0,64  #stoplossss
+
+        # #si es una tendencia alcista retrocesos:
+        # R1A = max - (a*(max-min)) #retroceso de 38,2 etc
+        # R2A = max - (b*(max-min))
+        # RSLA = max - (c*(max-min))
+
+        # # si es una tendencia bajista:
+        # R1B = min + (a * (max - min))
+        # R2B = min + (b * (max - min))
+        # RSLB = min + (c * (max - min))
+        zzzz=666
+        self.__class__.prueba.append(zzzz)
+        self.funciona = True
+        n=0
+        while len(self.vector_datos) < n:
+            if n == self.tendencia_alza[n]:
+                (self.prueba.append(222))
+
+                min = (self.vector_datos[n].__getitem__('Low'))
+
+                max_encontrado=False
+                i=n
+                while i< len(self.vector_datos) and max_encontrado==False:
+                    if (self.vector_datos[i+3].__getitem__('Open')) < (self.vector_datos[i+2].__getitem__('Close')):
+                        max= (self.vector_datos[i+2].__getitem__('High'))
+                        max_encontrado=True
+                    else:
+                        i += 1
+
+
+                # si es una tendencia alcista:
+                R1A = max - (a * (max - min))  # retroceso de 38,2 etc
+                R2A = max - (b * (max - min)) #0,5
+                RSLA = max - (c * (max - min)) #0,64
+
+                if (self.vector_datos[i+3].__getitem__('Open')) > R1A:   #si esta entre el 38 y el 50 es una posible compra y despues habra que tener en cuenta los demas indicadores
+                    n+=1
+
+                elif ((self.vector_datos[i+3].__getitem__('Open')) < R1A) and (self.vector_datos[i+3].__getitem__('Open')) > R2A:
+                    self.posible_compra_alza.append((self.vector_datos[i+3]))
+
+
+                cont=i+4 #para buscar si supera el sL o no
+                while cont<len(self.vector_datos): #para saber cuando llega al objetivo o supera el stoploss y hay que vender
+
+                    if (self.vector_datos[i].__getitem__('Open')) < RSLA:
+                        self.posible_venta_alza.append(self.vector_datos[cont])
+                        cont +=1
+                    elif (self.vector_datos[i].__getitem__('Open')) > max:
+                        self.posible_venta_alza.append(self.vector_datos[cont])
+                        cont += 1
+                    else:
+                        cont += 1
+
+
+                n+=1
+                self.contador += 1
+
+
+            # elif n == self.tendencia_baja[n]:
+            #
+            #     max= (self.vector_datos[n].__getitem__('High'))
+            #
+            #     min_encontrado = False
+            #     i=n
+            #     while i < len(self.vector_datos) and min_encontrado == False:
+            #         if (self.vector_datos[i + 3].__getitem__('Open')) > (self.vector_datos[i + 2].__getitem__('Close')):
+            #             min = (self.vector_datos[i + 2].__getitem__('Low'))
+            #             min_encontrado = True
+            #         else:
+            #             i += 1
+            #
+            #     # si es una tendencia bajista:
+            #     R1B = min + (a * (max - min))    #retroceso 38,2
+            #     R2B = min + (b * (max - min))     #0,5
+            #     RSLB = min + (c * (max - min))     #0,64
+            #     n+=1
+            #     self.contador+=1
+
+            else:
+                (self.prueba.append(333))
+                n += 1
+                self.contador += 1
+
+
+a = operaciones(vector_datos, tendencia_alza, tendencia_baja)
+#b=a.get_posible_suma_alza()
+#print (b)
+c=a.get_posible_compra_alza()
+d=a.get_posible_venta_alza()
+print ('Posible compra alza:' , c)
+print ('Posible venta alza:', d)
+z=a.get_contador()
+print ('Contador:' , z)
+abc=a.get_prueba()
+print (abc)
+ab=a.get_funiona()
+print (ab)
