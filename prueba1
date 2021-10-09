@@ -7,6 +7,7 @@ import pandas as pd
 import csv
 from pyalgotrade.technical import ma
 from pyalgotrade.technical import rsi
+from pyalgotrade.technical import stoch
 import numpy as np
 #py -c "import yfinance; yfinance.download('AAPL','2016-01-01','2019-08-01')"
 # class MyStrategy(strategy.BacktestingStrategy):
@@ -60,6 +61,7 @@ class MyStrategy(strategy.BacktestingStrategy):
         super(MyStrategy, self).__init__(feed)
         self.__rsi = rsi.RSI(feed[instrument].getCloseDataSeries(), 14)
         self.__sma = ma.SMA(self.__rsi, 15)
+        #self.__stoch=stoch.StochasticOscillator(feed[instrument].getCloseDataSeries() ,14, 6, False) Mirar!!!!!!!!!!!!!!!!!!!
         self.__instrument = instrument
 
     def get__vecor_rsi(self):
@@ -167,10 +169,10 @@ class operaciones:
         self.posible_suma_baja=0,0
         self.posible_suma_total=0,0
         self.contador=0
-        self.prueba= 0
+        self.prueba= []
         self.funciona=False
     def prueba_DE_clase(self):
-        self.prueba=3435
+        self.prueba.append(3435)
 
     def get_funiona(self):
         return self.funciona
@@ -200,9 +202,9 @@ class operaciones:
         return total
 
     def aplicar_fibonacci(self):
-        a=0,382
-        b=0,50
-        c=0,64  #stoplossss
+        a=float(0.382)
+        b=float(0.50)
+        c=float(0.64)  #stoplossss
 
         # #si es una tendencia alcista retrocesos:
         # R1A = max - (a*(max-min)) #retroceso de 38,2 etc
@@ -214,90 +216,124 @@ class operaciones:
         # R2B = min + (b * (max - min))
         # RSLB = min + (c * (max - min))
         zzzz=666
-        self.__class__.prueba.append(zzzz)
+        self.prueba.append(zzzz)
         self.funciona = True
-        n=0
-        while len(self.vector_datos) < n:
-            if n == self.tendencia_alza[n]:
-                (self.prueba.append(222))
+        print (self.vector_datos)
+        print (self.vector_datos[0])
+        print(len(self.vector_datos))
+        print('len tendencia alza:', len(self.tendencia_alza))
+        print(self.tendencia_alza)
+        print (self.tendencia_alza[0])
+        self.contador=1
+        n = 0
 
-                min = (self.vector_datos[n].__getitem__('Low'))
+        while n < len(self.vector_datos):
+            (self.prueba.append(22333))
+            longitud_tendencia=(len(self.tendencia_alza) - 2)
+            try:
 
-                max_encontrado=False
-                i=n
-                while i< len(self.vector_datos) and max_encontrado==False:
-                    if (self.vector_datos[i+3].__getitem__('Open')) < (self.vector_datos[i+2].__getitem__('Close')):
-                        max= (self.vector_datos[i+2].__getitem__('High'))
-                        max_encontrado=True
-                    else:
-                        i += 1
+                if ((self.tendencia_alza[n]) == n) and (n < longitud_tendencia):
+                    (self.prueba.append(222222222222222222222222222222222222222222222222222222222222222222222222222222))
 
+                    min = (self.vector_datos[n].__getitem__('Low'))
 
-                # si es una tendencia alcista:
-                R1A = max - (a * (max - min))  # retroceso de 38,2 etc
-                R2A = max - (b * (max - min)) #0,5
-                RSLA = max - (c * (max - min)) #0,64
+                    max_encontrado=False
+                    try:
 
-                if (self.vector_datos[i+3].__getitem__('Open')) > R1A:   #si esta entre el 38 y el 50 es una posible compra y despues habra que tener en cuenta los demas indicadores
-                    n+=1
-
-                elif ((self.vector_datos[i+3].__getitem__('Open')) < R1A) and (self.vector_datos[i+3].__getitem__('Open')) > R2A:
-                    self.posible_compra_alza.append((self.vector_datos[i+3]))
-
-
-                cont=i+4 #para buscar si supera el sL o no
-                while cont<len(self.vector_datos): #para saber cuando llega al objetivo o supera el stoploss y hay que vender
-
-                    if (self.vector_datos[i].__getitem__('Open')) < RSLA:
-                        self.posible_venta_alza.append(self.vector_datos[cont])
-                        cont +=1
-                    elif (self.vector_datos[i].__getitem__('Open')) > max:
-                        self.posible_venta_alza.append(self.vector_datos[cont])
-                        cont += 1
-                    else:
-                        cont += 1
+                        i=n
+                        while i< len(self.vector_datos) and (max_encontrado==False):
+                            if (self.vector_datos[i+3].__getitem__('Open')) < (self.vector_datos[i+2].__getitem__('Close')):
+                                max= (self.vector_datos[i+2].__getitem__('High'))
+                                max_encontrado=True
+                            else:
+                                i += 1
 
 
+
+                    except ValueError:
+                        print ('111111111 aqui está el fallo idiota')
+
+
+
+                    max=float(max)
+                    min=float(min)
+                    # si es una tendencia alcista:
+                    R1A =float (max - (a * (max - min)))  # retroceso de 38,2 etc
+                    R2A = float(max - (b * (max - min))) #0,5
+                    RSLA = float(max - (c * (max - min))) #0,64
+
+                    if (float(self.vector_datos[i+3].__getitem__('Open'))) > R1A:   #si esta entre el 38 y el 50 es una posible compra y despues habra que tener en cuenta los demas indicadores
+                        n+=1
+
+                    elif (float((self.vector_datos[i+3].__getitem__('Open'))) < R1A) and float((self.vector_datos[i+3].__getitem__('Open'))) > R2A:
+                        self.posible_compra_alza.append((self.vector_datos[i+3]))
+
+
+                    try:
+
+                        cont=i+4 #para buscar si supera el sL o no
+                        while cont<len(self.vector_datos): #para saber cuando llega al objetivo o supera el stoploss y hay que vender
+
+                            if float((self.vector_datos[i].__getitem__('Open'))) < RSLA:
+                                self.posible_venta_alza.append(self.vector_datos[cont])
+                                cont +=1
+                            elif float((self.vector_datos[i].__getitem__('Open'))) > max:
+                                self.posible_venta_alza.append(self.vector_datos[cont])
+                                cont += 1
+                            else:
+                                cont += 1
+
+
+                        n+=1
+                        self.contador += 1
+
+                    except ValueError:
+                        print ('22222 aqui esta el fallo')
+
+
+                # elif n == self.tendencia_baja[n]:
+                #
+                #     max= (self.vector_datos[n].__getitem__('High'))
+                #
+                #     min_encontrado = False
+                #     i=n
+                #     while i < len(self.vector_datos) and min_encontrado == False:
+                #         if (self.vector_datos[i + 3].__getitem__('Open')) > (self.vector_datos[i + 2].__getitem__('Close')):
+                #             min = (self.vector_datos[i + 2].__getitem__('Low'))
+                #             min_encontrado = True
+                #         else:
+                #             i += 1
+                #
+                #     # si es una tendencia bajista:
+                #     R1B = min + (a * (max - min))    #retroceso 38,2
+                #     R2B = min + (b * (max - min))     #0,5
+                #     RSLB = min + (c * (max - min))     #0,64
+                #     n+=1
+                #     self.contador+=1
+
+                else:
+                    (self.prueba.append(333))
+                    n += 1
+                    self.contador += 1
+
+            except:
                 n+=1
-                self.contador += 1
-
-
-            # elif n == self.tendencia_baja[n]:
-            #
-            #     max= (self.vector_datos[n].__getitem__('High'))
-            #
-            #     min_encontrado = False
-            #     i=n
-            #     while i < len(self.vector_datos) and min_encontrado == False:
-            #         if (self.vector_datos[i + 3].__getitem__('Open')) > (self.vector_datos[i + 2].__getitem__('Close')):
-            #             min = (self.vector_datos[i + 2].__getitem__('Low'))
-            #             min_encontrado = True
-            #         else:
-            #             i += 1
-            #
-            #     # si es una tendencia bajista:
-            #     R1B = min + (a * (max - min))    #retroceso 38,2
-            #     R2B = min + (b * (max - min))     #0,5
-            #     RSLB = min + (c * (max - min))     #0,64
-            #     n+=1
-            #     self.contador+=1
-
-            else:
-                (self.prueba.append(333))
-                n += 1
-                self.contador += 1
+                print (' el error esta en donde siempre')
 
 
 a = operaciones(vector_datos, tendencia_alza, tendencia_baja)
+a.aplicar_fibonacci()
 #b=a.get_posible_suma_alza()
 #print (b)
-c=a.get_posible_compra_alza()
-d=a.get_posible_venta_alza()
-print ('Posible compra alza:' , c)
-print ('Posible venta alza:', d)
-z=a.get_contador()
-print ('Contador:' , z)
+a.get_posible_compra_alza()
+a.get_posible_venta_alza()
+print ('Posible compra alza:' , a.posible_compra_alza)
+print ('Posible venta alza:', a.posible_venta_alza)
+a.get_contador()
+print ('Contador:' , a.contador)
 abc=a.get_prueba()
 print (abc)
 ab=a.get_funiona()
-print (ab)
+print ('get_funciona;', ab)
+a.prueba_DE_clase()
+print('self.prueba:' , a.prueba)
